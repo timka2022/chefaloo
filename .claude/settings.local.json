@@ -1,0 +1,24 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(npx create-next-app@latest cheffaloo --typescript --tailwind --eslint --app --src-dir --import-alias \"@/*\" --use-npm --no-turbopack)",
+      "Bash(yes \"\")",
+      "Bash(npm install:*)",
+      "Bash(npx shadcn@latest init -d)",
+      "Bash(npx shadcn@latest add input textarea dialog badge checkbox card tabs select toast sonner separator sheet tooltip avatar -y)",
+      "Bash(npx shadcn@latest add input textarea dialog badge checkbox card tabs select sonner separator sheet tooltip avatar toggle -y)",
+      "Bash(npx tsc:*)",
+      "Bash(grep -r \"onOpenChange\\\\|open.*boolean\\\\|openChange\" 'C:/Users/tim/OneDrive/Desktop/Timkas AI Labs/Cheffaloo/cheffaloo/node_modules/@base-ui/react/dist/dialog' --include=*.d.ts -l)",
+      "Bash(npx next:*)",
+      "mcp__chrome-devtools__new_page",
+      "mcp__chrome-devtools__take_screenshot",
+      "mcp__claude_ai_Supabase__list_projects",
+      "mcp__claude_ai_Supabase__execute_sql",
+      "mcp__chrome-devtools__navigate_page",
+      "mcp__claude_ai_Supabase__apply_migration",
+      "Bash(gh auth:*)",
+      "Bash(gh api:*)",
+      "Bash(gh repo:*)"
+    ]
+  }
+}
