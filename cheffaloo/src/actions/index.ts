@@ -1,6 +1,6 @@
 "use server";
 
-import { supabase } from "@/lib/supabase";
+import { createClient } from "@/lib/supabase/server";
 import { generateRecipeWithAI } from "@/lib/openai";
 import { generateGroceryList } from "@/lib/grocery";
 import { searchFoodImage } from "@/lib/unsplash";
@@ -15,7 +15,14 @@ import type {
   DietaryPreference,
 } from "@/lib/types";
 
-const DEMO_USER_ID = "00000000-0000-0000-0000-000000000001";
+async function getAuthenticatedClient() {
+  const supabase = await createClient();
+  const { data: { user }, error } = await supabase.auth.getUser();
+  if (error || !user) {
+    throw new Error("Not authenticated");
+  }
+  return { supabase, userId: user.id };
+}
 
 // ---------------------------------------------------------------------------
 // Recipe Actions
@@ -24,10 +31,11 @@ const DEMO_USER_ID = "00000000-0000-0000-0000-000000000001";
 export async function createRecipe(
   recipe: GeneratedRecipe
 ): Promise<Recipe | { error: string }> {
+  const { supabase, userId } = await getAuthenticatedClient();
   const { data: inserted, error: recipeError } = await supabase
     .from("recipes")
     .insert({
-      user_id: DEMO_USER_ID,
+      user_id: userId,
       title: recipe.title,
       description: recipe.description,
       image_url: recipe.image_url ?? null,
@@ -86,6 +94,7 @@ export async function generateRecipe(
 }
 
 export async function getRecipes(): Promise<Recipe[] | { error: string }> {
+  const { supabase, userId } = await getAuthenticatedClient();
   const { data, error } = await supabase
     .from("recipes")
     .select(
@@ -94,7 +103,7 @@ export async function getRecipes(): Promise<Recipe[] | { error: string }> {
       recipe_reviews(rating)
     `
     )
-    .eq("user_id", DEMO_USER_ID)
+    .eq("user_id", userId)
     .eq("archived", false)
     .order("created_at", { ascending: false });
 
@@ -118,6 +127,7 @@ export async function getRecipes(): Promise<Recipe[] | { error: string }> {
 export async function getRecipe(
   id: string
 ): Promise<Recipe | { error: string }> {
+  const { supabase, userId } = await getAuthenticatedClient();
   const { data, error } = await supabase
     .from("recipes")
     .select(
@@ -128,7 +138,7 @@ export async function getRecipe(
     `
     )
     .eq("id", id)
-    .eq("user_id", DEMO_USER_ID)
+    .eq("user_id", userId)
     .single();
 
   if (error || !data) {
@@ -137,7 +147,7 @@ export async function getRecipe(
 
   const userReview =
     (data.recipe_reviews as RecipeReview[])?.find(
-      (r) => r.user_id === DEMO_USER_ID
+      (r) => r.user_id === userId
     ) ?? null;
 
   return {
@@ -150,11 +160,12 @@ export async function getRecipe(
 export async function deleteRecipe(
   id: string
 ): Promise<{ success: true } | { error: string }> {
+  const { supabase, userId } = await getAuthenticatedClient();
   const { error } = await supabase
     .from("recipes")
     .delete()
     .eq("id", id)
-    .eq("user_id", DEMO_USER_ID);
+    .eq("user_id", userId);
 
   if (error) {
     return { error: error.message };
@@ -167,16 +178,18 @@ export async function archiveRecipe(
   id: string,
   archived: boolean
 ): Promise<{ success: true } | { error: string }> {
+  const { supabase, userId } = await getAuthenticatedClient();
   const { error } = await supabase
     .from("recipes")
     .update({ archived })
     .eq("id", id)
-    .eq("user_id", DEMO_USER_ID);
+    .eq("user_id", userId);
   if (error) return { error: error.message };
   return { success: true };
 }
 
 export async function getArchivedRecipes(): Promise<Recipe[] | { error: string }> {
+  const { supabase, userId } = await getAuthenticatedClient();
   const { data, error } = await supabase
     .from("recipes")
     .select(
@@ -185,7 +198,7 @@ export async function getArchivedRecipes(): Promise<Recipe[] | { error: string }
       recipe_reviews(rating)
     `
     )
-    .eq("user_id", DEMO_USER_ID)
+    .eq("user_id", userId)
     .eq("archived", true)
     .order("created_at", { ascending: false });
 
@@ -213,6 +226,7 @@ export async function getArchivedRecipes(): Promise<Recipe[] | { error: string }
 export async function getOrCreateMealPlan(
   weekStartDate: string
 ): Promise<MealPlan | { error: string }> {
+  const { supabase, userId } = await getAuthenticatedClient();
   // Try to find an existing plan for this week
   const { data: existing, error: fetchError } = await supabase
     .from("meal_plans")
@@ -228,7 +242,7 @@ export async function getOrCreateMealPlan(
       )
     `
     )
-    .eq("user_id", DEMO_USER_ID)
+    .eq("user_id", userId)
     .eq("week_start_date", weekStartDate)
     .maybeSingle();
 
@@ -243,7 +257,7 @@ export async function getOrCreateMealPlan(
   // Create a new plan
   const { data: created, error: createError } = await supabase
     .from("meal_plans")
-    .insert({ user_id: DEMO_USER_ID, week_start_date: weekStartDate })
+    .insert({ user_id: userId, week_start_date: weekStartDate })
     .select()
     .single();
 
@@ -260,6 +274,7 @@ export async function addMealToPlan(
   day: string,
   mealType: string = "dinner"
 ): Promise<MealPlanItem | { error: string }> {
+  const { supabase } = await getAuthenticatedClient();
   const { data, error } = await supabase
     .from("meal_plan_items")
     .insert({
@@ -290,6 +305,7 @@ export async function addMealToPlan(
 export async function removeMealFromPlan(
   itemId: string
 ): Promise<{ success: true } | { error: string }> {
+  const { supabase } = await getAuthenticatedClient();
   const { error } = await supabase
     .from("meal_plan_items")
     .delete()
@@ -309,6 +325,7 @@ export async function removeMealFromPlan(
 export async function getMealPlanGroceryList(
   mealPlanId: string
 ): Promise<GroceryList | { error: string }> {
+  const { supabase } = await getAuthenticatedClient();
   const { data, error } = await supabase
     .from("meal_plan_items")
     .select(
@@ -340,12 +357,13 @@ export async function submitReview(
   notes: string | null,
   wouldMakeAgain: boolean
 ): Promise<RecipeReview | { error: string }> {
+  const { supabase, userId } = await getAuthenticatedClient();
   const { data, error } = await supabase
     .from("recipe_reviews")
     .upsert(
       {
         recipe_id: recipeId,
-        user_id: DEMO_USER_ID,
+        user_id: userId,
         rating,
         notes,
         would_make_again: wouldMakeAgain,
@@ -365,11 +383,12 @@ export async function submitReview(
 export async function getRecipeReview(
   recipeId: string
 ): Promise<RecipeReview | null | { error: string }> {
+  const { supabase, userId } = await getAuthenticatedClient();
   const { data, error } = await supabase
     .from("recipe_reviews")
     .select("*")
     .eq("recipe_id", recipeId)
-    .eq("user_id", DEMO_USER_ID)
+    .eq("user_id", userId)
     .maybeSingle();
 
   if (error) {
@@ -384,10 +403,11 @@ export async function getRecipeReview(
 // ---------------------------------------------------------------------------
 
 export async function getDietaryPreferences(): Promise<DietaryPreference[] | { error: string }> {
+  const { supabase, userId } = await getAuthenticatedClient();
   const { data, error } = await supabase
     .from("dietary_preferences")
     .select("*")
-    .eq("user_id", DEMO_USER_ID)
+    .eq("user_id", userId)
     .order("created_at", { ascending: true });
 
   if (error) {
@@ -401,9 +421,10 @@ export async function addDietaryPreference(
   preference: string,
   type: 'allergy' | 'preference' = 'allergy'
 ): Promise<DietaryPreference | { error: string }> {
+  const { supabase, userId } = await getAuthenticatedClient();
   const { data, error } = await supabase
     .from("dietary_preferences")
-    .insert({ user_id: DEMO_USER_ID, preference, type })
+    .insert({ user_id: userId, preference, type })
     .select()
     .single();
 
@@ -417,6 +438,7 @@ export async function addDietaryPreference(
 export async function removeDietaryPreference(
   id: string
 ): Promise<{ success: true } | { error: string }> {
+  const { supabase } = await getAuthenticatedClient();
   const { error } = await supabase
     .from("dietary_preferences")
     .delete()
