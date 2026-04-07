@@ -477,3 +477,9 @@ function normalizeMealPlanItem(raw: any): MealPlanItem {
   const { recipes: _, ...rest } = raw;
   return { ...rest, recipe } as MealPlanItem;
 }
+
+export async function verifySitePassword(
+  password: string
+): Promise<{ success: boolean }> {
+  return { success: password === process.env.PAGE_KEY };
+}

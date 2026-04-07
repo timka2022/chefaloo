@@ -1,22 +1,27 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
+import { verifySitePassword } from "@/actions";
 
 export default function GatePage() {
   const [password, setPassword] = useState("");
   const [error, setError] = useState(false);
+  const [isPending, startTransition] = useTransition();
   const router = useRouter();
 
   function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
-    if (password === "taco") {
-      document.cookie = "site_access=granted; path=/; max-age=31536000";
-      router.push("/");
-      router.refresh();
-    } else {
-      setError(true);
-    }
+    startTransition(async () => {
+      const result = await verifySitePassword(password);
+      if (result.success) {
+        document.cookie = "site_access=granted; path=/; max-age=31536000";
+        router.push("/");
+        router.refresh();
+      } else {
+        setError(true);
+      }
+    });
   }
 
   return (
@@ -49,9 +54,10 @@ export default function GatePage() {
           )}
           <button
             type="submit"
-            className="h-10 w-full rounded-lg bg-[#7C9082] text-white text-sm font-medium hover:bg-[#6b7d70] transition-colors"
+            disabled={isPending}
+            className="h-10 w-full rounded-lg bg-[#7C9082] text-white text-sm font-medium hover:bg-[#6b7d70] transition-colors disabled:opacity-60"
           >
-            Enter
+            {isPending ? "Checking…" : "Enter"}
           </button>
         </form>
       </div>
