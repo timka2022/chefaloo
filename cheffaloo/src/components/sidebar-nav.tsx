@@ -4,6 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
   CalendarDays,
+  MessageCircle,
   Sparkles,
   BookOpen,
   ShoppingCart,
@@ -15,6 +16,7 @@ import { logout } from "@/actions/auth";
 
 const navItems = [
   { label: "Meal Plan", href: "/", icon: CalendarDays },
+  { label: "Brainstorm", href: "/brainstorm", icon: MessageCircle },
   { label: "AI Recipes", href: "/generate", icon: Sparkles },
   { label: "Recipes", href: "/recipes", icon: BookOpen },
   { label: "Grocery List", href: "/grocery-list", icon: ShoppingCart },

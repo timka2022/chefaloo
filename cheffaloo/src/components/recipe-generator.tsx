@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useTransition, useRef, useEffect } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { toast } from "sonner";
 import Link from "next/link";
 import {
@@ -14,6 +14,14 @@ import {
 } from "lucide-react";
 import { generateRecipe, createRecipe, getDietaryPreferences } from "@/actions";
 import type { GeneratedRecipe, DietaryPreference } from "@/lib/types";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogFooter,
+} from "@/components/ui/dialog";
 
 const QUICK_SUGGESTIONS = [
   "Quick weeknights",
@@ -40,11 +48,7 @@ function SkeletonCard() {
   );
 }
 
-interface RecipeCardProps {
-  recipe: GeneratedRecipe;
-}
-
-function RecipeCard({ recipe }: RecipeCardProps) {
+function UseRecipeButton({ recipe, className }: { recipe: GeneratedRecipe; className?: string }) {
   const router = useRouter();
   const [isSaving, startSaving] = useTransition();
 
@@ -60,78 +64,105 @@ function RecipeCard({ recipe }: RecipeCardProps) {
     });
   }
 
+  return (
+    <button
+      onClick={handleUseRecipe}
+      disabled={isSaving}
+      className={
+        className ??
+        "bg-[#7C9082] text-white rounded-full text-sm w-full py-2 font-medium hover:bg-[#6a7d70] transition-colors disabled:opacity-60 flex items-center justify-center gap-2"
+      }
+    >
+      {isSaving ? (
+        <>
+          <Loader2 className="w-4 h-4 animate-spin" />
+          Saving…
+        </>
+      ) : (
+        "Use This Recipe"
+      )}
+    </button>
+  );
+}
+
+interface RecipeCardProps {
+  recipe: GeneratedRecipe;
+  onPreview: (recipe: GeneratedRecipe) => void;
+}
+
+function RecipeCard({ recipe, onPreview }: RecipeCardProps) {
   const totalTime =
     (recipe.prep_time_minutes ?? 0) + (recipe.cook_time_minutes ?? 0);
 
   return (
-    <div className="bg-white rounded-2xl border border-[#E8E4DF] overflow-hidden shadow-sm flex flex-col">
-      {/* Image area */}
-      {recipe.image_url ? (
-        // eslint-disable-next-line @next/next/no-img-element
-        <img src={recipe.image_url} alt={recipe.title} className="w-full h-40 object-cover flex-shrink-0" />
-      ) : (
-        <div className="h-40 bg-gradient-to-br from-amber-50 to-orange-50 flex items-center justify-center flex-shrink-0">
-          <Utensils className="w-10 h-10 text-[#C4B9A8]" />
-        </div>
-      )}
-
-      <div className="p-4 flex flex-col flex-1 gap-3">
-        <h3 className="font-medium text-[#2D2D2D] leading-snug line-clamp-2">
-          {recipe.title}
-        </h3>
-
-        {/* Meta */}
-        <div className="flex items-center gap-3 text-xs text-[#8A8A8A]">
-          <span className="flex items-center gap-1">
-            <Clock className="w-3.5 h-3.5" />
-            {totalTime > 0 ? `${totalTime} min` : "—"}
-          </span>
-          <span className="text-[#D1CCC5]">·</span>
-          <span className="flex items-center gap-1">
-            <Users className="w-3.5 h-3.5" />
-            {recipe.servings} {recipe.servings === 1 ? "serving" : "servings"}
-          </span>
-        </div>
-
-        {/* Tags */}
-        {recipe.tags && recipe.tags.length > 0 && (
-          <div className="flex flex-wrap gap-1.5">
-            {recipe.tags.slice(0, 4).map((tag) => (
-              <span
-                key={tag}
-                className="bg-[#F0EDE8] text-[#5A5A5A] rounded-full px-2.5 py-0.5 text-xs"
-              >
-                {tag}
-              </span>
-            ))}
+    <div className="bg-white rounded-2xl border border-[#E8E4DF] overflow-hidden shadow-sm flex flex-col cursor-pointer hover:border-[#7C9082]/40 transition-colors">
+      {/* Clickable area: image + info */}
+      <div
+        role="button"
+        tabIndex={0}
+        onClick={() => onPreview(recipe)}
+        onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") onPreview(recipe); }}
+        className="flex flex-col flex-1 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#7C9082]/50 rounded-t-2xl"
+      >
+        {/* Image area */}
+        {recipe.image_url ? (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img src={recipe.image_url} alt={recipe.title} className="w-full h-40 object-cover flex-shrink-0" />
+        ) : (
+          <div className="h-40 bg-gradient-to-br from-amber-50 to-orange-50 flex items-center justify-center flex-shrink-0">
+            <Utensils className="w-10 h-10 text-[#C4B9A8]" />
           </div>
         )}
 
-        {/* Use This Recipe button */}
-        <button
-          onClick={handleUseRecipe}
-          disabled={isSaving}
-          className="mt-auto bg-[#7C9082] text-white rounded-full text-sm w-full py-2 font-medium hover:bg-[#6a7d70] transition-colors disabled:opacity-60 flex items-center justify-center gap-2"
-        >
-          {isSaving ? (
-            <>
-              <Loader2 className="w-4 h-4 animate-spin" />
-              Saving…
-            </>
-          ) : (
-            "Use This Recipe"
+        <div className="p-4 flex flex-col gap-3">
+          <h3 className="font-medium text-[#2D2D2D] leading-snug line-clamp-2">
+            {recipe.title}
+          </h3>
+
+          {/* Meta */}
+          <div className="flex items-center gap-3 text-xs text-[#8A8A8A]">
+            <span className="flex items-center gap-1">
+              <Clock className="w-3.5 h-3.5" />
+              {totalTime > 0 ? `${totalTime} min` : "—"}
+            </span>
+            <span className="text-[#D1CCC5]">·</span>
+            <span className="flex items-center gap-1">
+              <Users className="w-3.5 h-3.5" />
+              {recipe.servings} {recipe.servings === 1 ? "serving" : "servings"}
+            </span>
+          </div>
+
+          {/* Tags */}
+          {recipe.tags && recipe.tags.length > 0 && (
+            <div className="flex flex-wrap gap-1.5">
+              {recipe.tags.slice(0, 4).map((tag) => (
+                <span
+                  key={tag}
+                  className="bg-[#F0EDE8] text-[#5A5A5A] rounded-full px-2.5 py-0.5 text-xs"
+                >
+                  {tag}
+                </span>
+              ))}
+            </div>
           )}
-        </button>
+        </div>
+      </div>
+
+      {/* Use This Recipe button — outside clickable area */}
+      <div className="px-4 pb-4" onClick={(e) => e.stopPropagation()}>
+        <UseRecipeButton recipe={recipe} />
       </div>
     </div>
   );
 }
 
 export function RecipeGenerator() {
-  const [prompt, setPrompt] = useState("");
+  const searchParams = useSearchParams();
+  const [prompt, setPrompt] = useState(searchParams.get("prompt") ?? "");
   const [recipes, setRecipes] = useState<GeneratedRecipe[]>([]);
   const [isGenerating, startGenerating] = useTransition();
   const [dietaryPrefs, setDietaryPrefs] = useState<DietaryPreference[]>([]);
+  const [previewRecipe, setPreviewRecipe] = useState<GeneratedRecipe | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
@@ -247,7 +278,11 @@ export function RecipeGenerator() {
               </>
             )}
             {recipes.map((recipe, idx) => (
-              <RecipeCard key={`${recipe.title}-${idx}`} recipe={recipe} />
+              <RecipeCard
+                key={`${recipe.title}-${idx}`}
+                recipe={recipe}
+                onPreview={setPreviewRecipe}
+              />
             ))}
           </div>
         </section>
@@ -270,6 +305,86 @@ export function RecipeGenerator() {
           ))}
         </div>
       </section>
+
+      {/* Recipe Preview Dialog */}
+      <Dialog
+        open={previewRecipe !== null}
+        onOpenChange={(open) => { if (!open) setPreviewRecipe(null); }}
+      >
+        <DialogContent className="sm:max-w-lg max-h-[85vh] overflow-y-auto">
+          {previewRecipe && (
+            <>
+              <DialogHeader>
+                <DialogTitle>{previewRecipe.title}</DialogTitle>
+                {previewRecipe.description && (
+                  <DialogDescription>{previewRecipe.description}</DialogDescription>
+                )}
+              </DialogHeader>
+
+              {/* Meta */}
+              <div className="flex items-center gap-3 text-sm text-[#8A8A8A]">
+                <span className="flex items-center gap-1">
+                  <Clock className="w-3.5 h-3.5" />
+                  {(previewRecipe.prep_time_minutes ?? 0) + (previewRecipe.cook_time_minutes ?? 0)} min
+                </span>
+                <span className="text-[#D1CCC5]">·</span>
+                <span className="flex items-center gap-1">
+                  <Users className="w-3.5 h-3.5" />
+                  {previewRecipe.servings} servings
+                </span>
+              </div>
+
+              {/* Tags */}
+              {previewRecipe.tags.length > 0 && (
+                <div className="flex flex-wrap gap-1.5">
+                  {previewRecipe.tags.map((tag) => (
+                    <span
+                      key={tag}
+                      className="bg-[#F0EDE8] text-[#5A5A5A] rounded-full px-2.5 py-0.5 text-xs"
+                    >
+                      {tag}
+                    </span>
+                  ))}
+                </div>
+              )}
+
+              {/* Ingredients */}
+              {previewRecipe.ingredients.length > 0 && (
+                <div>
+                  <h3 className="text-sm font-semibold text-[#2D2D2D] mb-2">Ingredients</h3>
+                  <ul className="space-y-1">
+                    {previewRecipe.ingredients.map((ing, i) => (
+                      <li key={i} className="text-sm text-[#5A5A5A]">
+                        • {ing.quantity} {ing.unit} {ing.name}
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+
+              {/* Instructions */}
+              {previewRecipe.instructions.length > 0 && (
+                <div>
+                  <h3 className="text-sm font-semibold text-[#2D2D2D] mb-2">Instructions</h3>
+                  <ol className="space-y-2">
+                    {previewRecipe.instructions.map((step, i) => (
+                      <li key={i} className="flex gap-2 text-sm text-[#5A5A5A]">
+                        <span className="font-medium text-[#2D2D2D] shrink-0">{i + 1}.</span>
+                        <span>{step}</span>
+                      </li>
+                    ))}
+                  </ol>
+                </div>
+              )}
+
+              {/* Use This Recipe button in dialog footer */}
+              <DialogFooter className="-mx-4 -mb-4 border-t border-[#E8E4DF] bg-[#F5F3EF]/50 p-4 rounded-b-xl">
+                <UseRecipeButton recipe={previewRecipe} />
+              </DialogFooter>
+            </>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

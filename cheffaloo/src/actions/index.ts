@@ -254,10 +254,13 @@ export async function getOrCreateMealPlan(
     return normalizeMealPlan(existing);
   }
 
-  // Create a new plan
+  // Create a new plan (upsert to avoid race-condition duplicate key errors)
   const { data: created, error: createError } = await supabase
     .from("meal_plans")
-    .insert({ user_id: userId, week_start_date: weekStartDate })
+    .upsert(
+      { user_id: userId, week_start_date: weekStartDate },
+      { onConflict: "user_id,week_start_date" }
+    )
     .select()
     .single();
 

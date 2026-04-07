@@ -7,10 +7,7 @@ import {
   Download,
   ShoppingCart,
   Leaf,
-  Milk,
   Beef,
-  Package,
-  Snowflake,
   Flame,
 } from "lucide-react";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -27,12 +24,10 @@ interface CategoryConfig {
 }
 
 const CATEGORY_CONFIG: Record<string, CategoryConfig> = {
-  produce: { color: "#22C55E", bgColor: "#F0FDF4", Icon: Leaf },
-  dairy: { color: "#3B82F6", bgColor: "#EFF6FF", Icon: Milk },
-  meat: { color: "#EF4444", bgColor: "#FEF2F2", Icon: Beef },
-  pantry: { color: "#F59E0B", bgColor: "#FFFBEB", Icon: Package },
-  frozen: { color: "#06B6D4", bgColor: "#ECFEFF", Icon: Snowflake },
-  spices: { color: "#F97316", bgColor: "#FFF7ED", Icon: Flame },
+  proteins: { color: "#EF4444", bgColor: "#FEF2F2", Icon: Beef },
+  veggies_and_fruit: { color: "#22C55E", bgColor: "#F0FDF4", Icon: Leaf },
+  condiments: { color: "#F97316", bgColor: "#FFF7ED", Icon: Flame },
+  other: { color: "#8A8A8A", bgColor: "#F5F3EF", Icon: ShoppingCart },
 };
 
 const DEFAULT_CONFIG: CategoryConfig = {
@@ -49,6 +44,19 @@ function getCategoryConfig(category: string): CategoryConfig {
 function capitalise(str: string): string {
   return str.charAt(0).toUpperCase() + str.slice(1);
 }
+
+const CATEGORY_LABELS: Record<string, string> = {
+  proteins: "Proteins",
+  veggies_and_fruit: "Veggies & Fruit",
+  condiments: "Condiments",
+  other: "Other",
+};
+
+function categoryLabel(key: string): string {
+  return CATEGORY_LABELS[key] ?? key.charAt(0).toUpperCase() + key.slice(1);
+}
+
+const CATEGORY_ORDER = ["proteins", "veggies_and_fruit", "condiments", "other"];
 
 function formatItemLabel(item: GroceryItem): string {
   const qty = item.quantity > 0 ? item.quantity : null;
@@ -114,7 +122,7 @@ export function GroceryListView({
   function buildTextList(): string {
     const lines: string[] = [`${weekLabel} — Grocery List`, ""];
     for (const [cat, items] of Object.entries(groceryList)) {
-      lines.push(`## ${capitalise(cat)}`);
+      lines.push(`## ${categoryLabel(cat)}`);
       for (const item of items) {
         lines.push(`  - ${formatItemLabel(item)}`);
       }
@@ -143,7 +151,9 @@ export function GroceryListView({
     toast.success("Grocery list exported!");
   }
 
-  const categories = Object.entries(groceryList);
+  const categories = CATEGORY_ORDER
+    .filter((cat) => groceryList[cat]?.length > 0)
+    .map((cat) => [cat, groceryList[cat]] as [string, GroceryItem[]]);
 
   return (
     <div className="px-6 lg:px-10 py-8 max-w-5xl mx-auto">
@@ -222,7 +232,7 @@ export function GroceryListView({
                     </span>
                   </div>
                   <span className="font-medium text-[#2D2D2D] text-sm">
-                    {capitalise(category)}
+                    {categoryLabel(category)}
                   </span>
                 </div>
                 <span className="text-xs text-[#8A8A8A]">

@@ -1,5 +1,19 @@
 import { MealPlanItem, GroceryList, GroceryItem } from './types';
 
+const CATEGORY_MAP: Record<string, string> = {
+  meat: 'proteins',
+  dairy: 'proteins',
+  produce: 'veggies_and_fruit',
+  spices: 'condiments',
+  frozen: 'other',
+  pantry: 'other',
+};
+
+function remapCategory(category: string): string {
+  const key = category.toLowerCase().trim();
+  return CATEGORY_MAP[key] ?? key;
+}
+
 export function generateGroceryList(items: MealPlanItem[]): GroceryList {
   // Collect all ingredients from all recipes in the meal plan
   const merged = new Map<string, GroceryItem>();
@@ -9,9 +23,10 @@ export function generateGroceryList(items: MealPlanItem[]): GroceryList {
 
     for (const ingredient of ingredients) {
       const normalizedName = normalizeIngredientName(ingredient.ingredient_name);
+      if (normalizedName === 'water') continue;
       const unit = ingredient.unit ?? '';
       // Key includes unit so "1 cup flour" and "2 tbsp flour" remain separate entries
-      const key = `${normalizedName}__${unit}__${ingredient.grocery_category}`;
+      const key = `${normalizedName}__${unit}__${remapCategory(ingredient.grocery_category)}`;
 
       if (merged.has(key)) {
         const existing = merged.get(key)!;
@@ -23,7 +38,7 @@ export function generateGroceryList(items: MealPlanItem[]): GroceryList {
           ingredient_name: normalizedName,
           quantity: ingredient.quantity ?? 0,
           unit,
-          grocery_category: ingredient.grocery_category,
+          grocery_category: remapCategory(ingredient.grocery_category),
           checked: false,
         });
       }
@@ -34,7 +49,7 @@ export function generateGroceryList(items: MealPlanItem[]): GroceryList {
   const grouped: GroceryList = {};
 
   for (const item of merged.values()) {
-    const category = item.grocery_category || 'Uncategorized';
+    const category = remapCategory(item.grocery_category || 'other');
 
     if (!grouped[category]) {
       grouped[category] = [];

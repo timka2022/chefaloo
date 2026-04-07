@@ -18,7 +18,14 @@
       "mcp__claude_ai_Supabase__apply_migration",
       "Bash(gh auth:*)",
       "Bash(gh api:*)",
-      "Bash(gh repo:*)"
+      "Bash(gh repo:*)",
+      "Bash(grep -l \"use client\" \"/c/Users/tim/OneDrive/Desktop/Timkas AI Labs/Cheffaloo/cheffaloo/src/components\"/*.tsx)",
+      "Bash(xargs wc:*)",
+      "mcp__claude_ai_Supabase__search_docs",
+      "Bash(mv:*)",
+      "mcp__claude_ai_Supabase__list_tables",
+      "WebSearch",
+      "WebFetch(domain:docs.github.com)"
     ]
   }
 }

@@ -72,7 +72,7 @@ export async function generateRecipeWithAI(
   dietaryRestrictions: string[] = []
 ): Promise<GeneratedRecipe> {
   const baseInstructions =
-    'You are a professional chef and recipe creator. When given a recipe request, generate a complete, detailed, and delicious recipe. Always respond with valid JSON matching the requested schema exactly. Include realistic quantities, clear step-by-step instructions, and appropriate grocery categories for each ingredient.';
+    'You are a professional chef and recipe creator. When given a recipe request, generate a complete, detailed, and delicious recipe. Always respond with valid JSON matching the requested schema exactly. Include realistic quantities and clear step-by-step instructions. For grocery_category, use ONLY one of: "proteins", "veggies_and_fruit", "condiments", "other". Never include water as an ingredient. Use pounds (lb) for proteins like chicken, steak, and meat. Use cups for vegetables and fruit.';
 
   const instructions =
     dietaryRestrictions.length > 0
@@ -112,7 +112,7 @@ export async function parseRecipeText(rawText: string): Promise<GeneratedRecipe>
   const response = await openai.responses.create({
     model: 'gpt-4.1-mini',
     instructions:
-      'You are a professional chef and recipe parser. When given raw recipe text, extract and structure the information into a clean, complete recipe. Infer missing details (such as grocery categories) where necessary. Always respond with valid JSON matching the requested schema exactly.',
+      'You are a professional chef and recipe parser. When given raw recipe text, extract and structure the information into a clean, complete recipe. Infer missing details where necessary. For grocery_category, use ONLY one of: "proteins", "veggies and fruit", "condiments", "other". Never include water as an ingredient. Use pounds (lb) for proteins like chicken, steak, and meat. Use cups for vegetables and fruit. Always respond with valid JSON matching the requested schema exactly.',
     input: rawText,
     text: {
       format: {
